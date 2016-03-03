@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Chat Test</title>
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+
+</head>
+<body>
+<style>
+    body {
+        background: #f1f1f1;
+    }
+    #ulChat {
+        list-style: none;
+    }
+    .me {
+        font-weight:bolder;
+        color: green;
+    }
+    #linkID {
+        font-weight:bolder;
+    }
+</style>
+<div class="container">
+    <h2>Chat Demo <a href="?" class="btn btn-warning btn-small"><i class="icon-white icon-heart"></i> Change Room</a></h2>
+    <div class="alert alert-info" role="alert">
+        copy link : <span id="linkID"></span>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            user : <input name="user" id="user" value="test" readonly disabled class="form-control input-sm"><br>
+            text : <input name="msg" id="msg" class="form-control input-sm" ><br>
+            <button class="btn btn-primary btn-large" id="send"><i class="icon-white icon-heart"></i> Send</button>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Chat Panel</h3>
+            </div>
+            <div class="panel-body">
+                <ul id="ulChat">
+
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+<script type="text/javascript" src="mrg-min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="js/bootstrap.min.js"></script>
+<script>
+    var dt = new Date();
+    var time = dt.getHours() + ":" + dt.getMinutes() + ":" + dt.getSeconds();
+
+    $.urlParam = function(name){
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+        if (results==null){
+            return null;
+        }
+        else{
+            return results[1] || 0;
+        }
+    }
+
+    function randString(n)
+    {
+        if(!n)
+        {
+            n = 5;
+        }
+
+        var text = '';
+        var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+        for(var i=0; i < n; i++)
+        {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+
+        return text;
+    }
+
+    function makeid()
+    {
+        var text = "guest-";
+        var possible = "0123456789";
+
+        for( var i=0; i < 5; i++ )
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+        return text;
+    }
+    $("#user").val(makeid());
+    var client = new MRG.Client();
+    var meID = $("#user").val();
+
+    if (!$.urlParam('room')) {
+        $(location).attr('href', '?room='+randString(5));
+    }
+    $("#linkID").text(window.location.href);
+
+    var subscription = client.subscribe('/'+$.urlParam('room'), function(data) {
+        console.log(data);
+        if (data.type = 'msg-new') {
+            if (data.user == meID) {
+                $('#ulChat').prepend('<li>'+ time + ' [ <span class="me">'+ data.user + '</span> ]' +' : ' + data.text+'</li>');
+            } else {
+                $('#ulChat').prepend('<li>'+ time + ' [ <span>'+ data.user + '</span> ]' +' : ' + data.text+'</li>');
+            }
+
+        }
+    });
+
+
+    $("#send").click(function() {
+
+        var msg = $("#msg").val();
+        var user = $("#user").val();
+        if (msg) {
+            var sendMsg = client.publish('/'+$.urlParam('room'), { type : 'msg-new', text: msg,user: user});
+            sendMsg.then(function() {
+                console.log('Message received by server!');
+            }, function(error) {
+                console.log('There was a problem: ' + error.message);
+            });
+        }
+        $("#msg").val("");
+        $("#msg").focus();
+    });
+
+    $('#msg').bind('keypress', function(e) {
+        if(e.keyCode==13){
+            $("#send").click();
+        }
+    });
+
+</script>
+</body>
+</html>
